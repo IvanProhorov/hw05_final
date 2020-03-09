@@ -1,7 +1,7 @@
 """yatube URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/3.0/topics/http/urls/
+    https://docs.djangoproject.com/en/2.2/topics/http/urls/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -23,16 +23,17 @@ handler404 = "posts.views.page_not_found"  # noqa
 handler500 = "posts.views.server_error"  # noqa
 
 urlpatterns = [
+
+    path("admin/", admin.site.urls),
     # импорт правил из приложения posts
     path("", include("posts.urls")),
     path("auth/", include("users.urls")),
 # flatpages
-        path("about/", include("django.contrib.flatpages.urls")),
+    #path("about/", include("django.contrib.flatpages.urls")),
     # если нужного шаблона для /auth не нашлось в файле users.urls —
     # ищем совпадения в файле django.contrib.auth.urls
     path("auth/", include("django.contrib.auth.urls")),
     # импорт правил из приложения admin
-    path("admin/", admin.site.urls),
 ]
 if settings.DEBUG:
         urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -47,9 +47,11 @@ def profile(request, username):
     paginator = Paginator(posts, 5)  # показывать по 5 записей на странице.
     page_number = request.GET.get('page')  # переменная в URL с номером запрошенной страницы
     page = paginator.get_page(page_number)  # получить записи с нужным смещением
-    if Follow.objects.filter(user=profile, author=user_profile).count():
+    followers=Follow.objects.filter(user=request.user, author=user_profile).count()
+    if followers>0:
         following = True
-    following = False
+    else:
+        following = False
     return render(request, "profile.html",
                   {'user_profile': user_profile, 'posts': posts, 'page': page, 'paginator': paginator,'following':following })
 
@@ -59,8 +61,9 @@ def post_view(request, username, post_id):
     profile = get_object_or_404(User, username=username)
     post = Post.objects.get(author=profile.pk, id=post_id)
     posts_count = Post.objects.filter(author=profile).order_by('-pub_date').count()
+    items = post.comments.all()
     form = CommentForm()
-    return render(request, "post.html", {"profile": profile, "post": post, "count": posts_count, "form":form})
+    return render(request, "post.html", {"profile": profile, "post": post, "count": posts_count, "form":form,"items":items})
 
 
 @login_required
@@ -95,9 +98,11 @@ def add_comment(request, username, post_id):
     post = get_object_or_404(Post, pk=post_id)
     if request.method == 'POST':
         form = CommentForm(request.POST)
-        comments = post.comments.get().all()
+        #comments = post.comments.get().all()
         if form.is_valid():
             comment = form.save(commit=False)
+            comment.post=post
+            comment.author=request.user
             comment.save()
             return redirect('post', username=post.author.username, post_id=post_id)
     form = CommentForm()
@@ -106,8 +111,9 @@ def add_comment(request, username, post_id):
 @login_required
 def follow_index(request):
     """страница просмотра подписок"""
-    follow = Follow.objects.filter(user=request.user) #кто подписывается
-    post_list = Post.objects.filter(author__following__user=follow).order_by("-pub_date").all()
+    favorite_list = Follow.objects.select_related('author', 'user').filter(user=request.user)
+    author_list = [favorite.author for favorite in favorite_list]
+    post_list = Post.objects.filter(author__in=author_list).order_by("-pub_date")
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
@@ -118,12 +124,12 @@ def profile_follow(request, username):
     follower = User.objects.get(username=request.user.username) #кто подписывается
     follow = User.objects.get(username=username) #на кого подписывается
     Follow.objects.create(user=follower, author=follow)
-    return redirect ('posts:profile', username=username)
+    return redirect('profile', username=username)
 
 
 @login_required
 def profile_unfollow(request, username):
     follower = User.objects.get(username=request.user.username)  # кто подписывается
     follow = User.objects.get(username=username)  # на кого подписывается
-    Follow.objects.delete(user=follower, author=follow)
-    return redirect('posts:profile', username=username)
+    Follow.objects.get(user=follower, author=follow).delete()
+    return redirect('profile', username=username)

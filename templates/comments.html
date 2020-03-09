@@ -1,5 +1,5 @@
-<!-- Форма добавления комментария -->
-{% load addclass %}
+
+{% load user_filters %}
 
 {% if user.is_authenticated %}
 <div class="card my-4">
@@ -25,10 +25,8 @@
 <div class="media mb-4">
 <div class="media-body">
         <h5 class="mt-0">
-        <a
-                href="{% url 'profile' item.user.username %}"
-                name="comment_{{ item.id }}"
-                >{{ item.user.username }}</a>
+        <a href="{% url 'profile' item.author.username %}"
+                name="comment_{{ item.id }}">{{ item.author.username }}</a>
         </h5>
         {{ item.text }}
 </div>
