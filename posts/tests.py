@@ -10,7 +10,7 @@ from posts.models import Post, Group, Follow
 
 class TestPosts(TestCase):
 
-    def SetUp(self):
+    def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
             username="admin", email="admin.s@skynet.com", password="admin"
@@ -34,11 +34,10 @@ class TestPosts(TestCase):
                                     {'text': 'Тест добавления записи'}, follow=True)
          self.assertEqual(response.status_code, 200)
 
-    def test_new_post_un_auth_user(self):
+    def test_new_post_unauthorized_user(self):
         self.client = Client()
         response = self.client.post(
             reverse("new_post"), {'text': 'test'}, follow=True)
-
         self.assertRedirects(response, "/auth/login/?next=%2Fnew%2F")
 
     def test_update_info_when_create_new_post(self):
@@ -68,14 +67,9 @@ class PostsImgTest(TestCase):
     def test_img_upload(self):
         with open('1.jpg', 'rb') as fp:
             self.client.post('/new/', {'group':1, 'text':'Test post', 'image':fp,})
-        response = self.client.get('/test/1/')
-        self.assertContains(response, '<img', status_code=200)
-        response = self.client.get('/')
-        self.assertContains(response, '<img', status_code=200)
-        response = self.client.get('/test/')
-        self.assertContains(response, '<img', status_code=200)
-        response = self.client.get('/group/testgroup/')
-        self.assertContains(response, '<img', status_code=200)
+        for url in {'/test/1/','/','/test/','/group/testgroup/'}:
+            response = self.client.get(url)
+            self.assertContains(response, '<img', status_code=200)
 
     def test_file_upload(self):
         with open('README.md', 'rb') as fp:
