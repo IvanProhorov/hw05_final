@@ -21,7 +21,7 @@ def new_post(request):
     return render(request, "post_new.html", {"form": form, 'exist': False})
 
 
-@cache_page(60 * 15)
+@cache_page(20)
 def index(request):
     latest = Post.objects.order_by("-pub_date")[:11]
     year = dt.datetime.now().year
@@ -117,11 +117,8 @@ def add_comment(request, username, post_id):
 @login_required
 def follow_index(request):
     """страница просмотра подписок"""
-    # favorite_list = Follow.objects.select_related('author', 'user').filter(user=request.user)
-    # author_list = [favorite.author for favorite in favorite_list]
-    # post_list = Post.objects.filter(author__in=author_list).order_by("-pub_date")
-    favorite_list = Follow.objects.filter(user=request.user)
-    post_list = Post.objects.filter(favorite_list__user=request.user)
+    post_list = Post.objects.filter(author__following__user=request.user).select_related('author').order_by(
+        '-pub_date').all()
     paginator = Paginator(post_list, 10)
     page_number = request.GET.get('page')
     page = paginator.get_page(page_number)
@@ -131,16 +128,16 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     follow = User.objects.get(username=username)
-    count_follower = Follow.objects.filter(user= request.user, author=follow).count()
-    if (count_follower == 0) and ( request.user.username != follow.username):
-        Follow.objects.create(user= request.user, author=follow)
+    count_follower = Follow.objects.filter(user=request.user, author=follow).exists()
+    if not count_follower and request.user != follow:
+        Follow.objects.create(user=request.user, author=follow)
         return redirect("profile", username=username)
     return redirect('profile', username=username)
 
 
 @login_required
 def profile_unfollow(request, username):
-    follower = User.objects.get(username=request.user.username)
-    follow = User.objects.get(username=username) #Если пользователь удалиться, то и подписка на него тоже (author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="following"))
-    Follow.objects.get(user=follower, author=follow).delete()
+    follow = get_object_or_404(User,
+                               username=username)  # Если пользователь удалиться, то и подписка на него тоже (author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="following"))
+    Follow.objects.get(user=request.user, author=follow).delete()
     return redirect('profile', username=username)

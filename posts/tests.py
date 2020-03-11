@@ -101,7 +101,6 @@ class PostsImgTest(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertEquals(response.redirect_chain[0][0], '/test/1/')
         self.client.logout()
-        self.client=Client()
         response = self.client.get(add_comment_url,{'text':'comment'}, follow=True)
         self.assertEquals(response.redirect_chain[0][0], '/auth/login/?next=/test/1/comment/%3Ftext%3Dcomment')
 
@@ -112,16 +111,19 @@ class PostsImgTest(TestCase):
         user2 = User.objects.create_user(
             username="test3", email="test3.s@skynet.com", password="test"
         )
+
         self.client.get("/test3/follow")
         self.client.logout()
+
         self.client.login(username='test3', password='test')
         self.client.post('/new/', {'text': 'Test post'})
         self.client.logout()
+
         self.client.login(username='test', password='test')
         response = self.client.get('/follow/')
-        print(response.context['post'])
         self.assertEquals(response.context['post'].text, 'Test post')
         self.client.logout()
+
         self.client.login(username='test2', password='test')
         response = self.client.get('/follow/')
         self.assertNotContains(response, 'post')
